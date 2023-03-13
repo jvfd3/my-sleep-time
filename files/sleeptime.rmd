@@ -1,0 +1,100 @@
+# Sleep Time
+
+```{r RodaBibliotecas}
+options(repos = c(CRAN = "https://cran.r-project.org/"))
+install.packages("tidyverse")
+install.packages("lubridate")
+
+library(tidyverse)
+library(lubridate)
+```
+```{r ImportaCSV}
+files <- c(
+    "dormi_acordei.csv",
+    "HorasDeSonoJan-Fev.csv"
+)
+df <- read_csv(
+    file = files[1],
+    col_select = c(1:8)
+)
+```
+```{r}
+glimpse(df)
+```
+
+```{r ConverteEmData}
+df |>
+    mutate(
+        dormi = as.POSIXct(
+            paste(df$Y1, df$M1, df$D1, df$H1),
+            format = "%Y %m %d %H:%M"
+        ),
+        acordei = as.POSIXct(
+            paste(df$Y2, df$M2, df$D2, df$H2),
+            format = "%Y %m %d %H:%M"
+        ),
+    ) |>
+    select(acordei, dormi) |>
+    drop_na() |>
+    mutate(
+        dormindoSeg = acordei - dormi
+    ) |>
+    # mutate(
+    #     dormindoHM = seconds_to_period(dormindoSeg),
+    #     dia = seconds_to_period(86400)
+    # ) |>
+    # select(-acordei, -dormi) |>
+    # mutate(
+    #     tempoDeSono = difftime(dia, dormindoHM, units = "hours")
+    # ) |>
+    print(n = 40)
+```
+```{r}
+acordei
+```
+
+```{r}
+# Atribui nomes às colunas
+colnames(df) <- c(
+    "dia_acordado", "mes_acordado", "ano_acordado", "hora_acordado",
+    "dia_dormido", "mes_dormido", "ano_dormido", "hora_dormido"
+)
+
+# Converte as colunas de data e hora para o formato correto
+df$data_acordado <- as.Date(
+    paste(
+        df$ano_acordado,
+        df$mes_acordado,
+        df$dia_acordado,
+        sep = "-"
+    ), "%Y-%m-%d"
+)
+df$data_dormido <- as.Date(
+    paste(
+        df$ano_dormido,
+        df$mes_dormido,
+        df$dia_dormido,
+        sep = "-"
+    ), "%Y-%m-%d"
+)
+df$hora_acordado <- as.POSIXct(df$hora_acordado, format = "%H:%M")
+df$hora_dormido <- as.POSIXct(df$hora_dormido, format = "%H:%M")
+
+# Calcula o tempo de sono em horas
+df$tempo_sono <- difftime(df$hora_dormido, df$hora_acordado, units = "hours")
+
+# Seleciona apenas as linhas dos meses de janeiro e fevereiro
+df_jan_fev <- df[df$mes_acordado %in% c(1, 2), ]
+
+# Cria o gráfico
+library(ggplot2)
+ggplot(data = df_jan_fev, aes(x = data_acordado, y = tempo_sono)) +
+    geom_bar(stat = "identity", fill = "blue") +
+    xlab("Data") +
+    ylab("Horas de sono") +
+    ggtitle("Horas de sono por dia em janeiro e fevereiro")
+```
+
+```{r}
+df$hora_acordado
+```
